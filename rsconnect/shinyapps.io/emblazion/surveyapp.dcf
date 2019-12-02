@@ -1,0 +1,10 @@
+name: surveyapp
+title:
+username:
+account: emblazion
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 1501329
+bundleId: 2604460
+url: https://emblazion.shinyapps.io/surveyapp/
+when: 1574271792.39473
