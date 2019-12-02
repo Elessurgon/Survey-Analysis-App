@@ -70,7 +70,8 @@ ui <- dashboardPage(
       menuItem("Cochran's Formula Tabulated", tabName = "cochran", icon = icon("table")),
       menuItem("Central Limit Theroem", tabName = "CLT", icon = icon("chart-bar")),
       menuItem("Bayesian Inference", tabName = "bayes", icon = icon("chart-line")),
-      menuItem("Distributions", tabName = "distri", icon = icon("chart-bar"))
+      menuItem("Distributions", tabName = "distri", icon = icon("chart-bar")),
+      menuItem("Tests", tabName = "tests", icon = icon("table"))
     )
   ),
   
@@ -94,10 +95,10 @@ ui <- dashboardPage(
               ),
               fluidRow(
                 actionButton(inputId = "update", label = "Generate New Data"),
-                column(radioButtons(
+                column(box(radioButtons(
                   inputId = "choice", label = "Canteen & Chill Spending/Rating Data",
                   choices = c("Spending Data" = "spend", "Rating Data" = "rate")          
-                ), width = 5) 
+                )), width = 5) 
               ),
               box(plotOutput("CLTPlot"), height = 400, width = 400, status = "warning")
       ),
@@ -140,7 +141,29 @@ ui <- dashboardPage(
                 )
               ),
               box(plotOutput("Distribution"), height = 400, width = 500, status = "warning")
-      ))
+      ),
+      tabItem(tabName = "tests",
+              tabsetPanel(
+                tabPanel(title = "Confidence Interval",
+                        box(radioButtons(
+                           inputId = "CIChoice", label = "Data",
+                           choices = c("Gender" = "3", "Academic Section" = "4", "Academic Year" = "5",
+                                       "Eating Means" = "6", "Frequency Canteen" = "7",
+                                       "Frequency Chill" = "8"))),
+                         DT::dataTableOutput(outputId = "confidenceInterval")                   
+                ),
+                tabPanel(title = "Non Parametric Tests"
+                  
+                ),
+                tabPanel(title = "Chi-Square test of Independence",
+                  verbatimTextOutput(outputId = "chi")
+                ),
+                tabPanel(title = "Linear Regression and ANOVA",
+                  verbatimTextOutput(outputId = "anova")                                            
+                )
+              )
+      )
+    )
   )
 )
 
@@ -221,12 +244,28 @@ server <- function(input, output){
     )
   })
 
-  
-    
   output$Distribution <- renderPlot({
     distribution(pop = temp[[11]], sampleSize = input$size2, iter = input$iter2, f = fun())
   })
   
+  CIchoice <- eventReactive(input$CIChoice, {
+    switch(input$CIChoice,
+          "3" = temp[[3]], "4" = temp[[4]], "5" = temp[[5]],"6" = temp[[6]],
+          "7" = temp[[7]],"8" = temp[[8]])
+  })
+  
+  
+  output$confidenceInterval <- DT::renderDataTable({
+    confidenceInterval(table(CIchoice()))
+  })
+  
+  output$chi <- renderPrint({
+    chiSquareTestIndependence(table = table(temp[[3]], temp[[7]]))
+  })
+
+  output$anova <- renderPrint({
+    regressionIndependenceTest(temp[[12]] ~ temp[[3]] + temp[[7]] + temp[[8]], temp)
+  })
 }
 
 shinyApp(ui = ui, server = server)

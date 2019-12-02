@@ -223,43 +223,36 @@ cochranFormula <- function(p = 0.5, step = 0.001){
   return(df)
 }
 
-WaldsConfidenceInterval <- function(w, n, alpha = 0.05){
-  p <- w/n
-  q <- 1 - p
-  var <- p*q/n
-  lower <- p - qnorm(1 - alpha/2) * sqrt(var)
-  upper <- p + qnorm(1 - alpha/2) * sqrt(var)
-  intervals <- round(data.frame(lower, upper), 4) 
-  return(intervals)
+
+confidenceInterval <- function(tableCategory, alpha = 0.05){
+  #print(tableCategory)
+  df <- data.frame("Categories" = names(tableCategory),binom.confint(x = tableCategory, n = sum(tableCategory), conf.level = 1 - alpha, methods = "all"))
+  return(df)
 }
 
-confidenceInterval <- function(w, n, alpha = 0.05){
-  return(binom.confint(x = w, n = n, conf.level = 1 - alpha, methods = "all"))
-}
-
-binConfidenceIntervals <- function(col, alpha = 0.05){
-  table <- table(col)[1:2]
-  w <- as.numeric(table[2])
-  n <- as.numeric(table[1]) + as.numeric(table[2])
-  #View(WaldsConfidenceInterval(w, n, alpha))
-  CI <- confidenceInterval(w, n, alpha)
-  #View(CI)
-  return(CI)
-}
-
-chiSquareTestIndependence <- function(col1, col2){
-  table <- table(col1, col2)
+# gender & spend
+chiSquareTestIndependence <- function(col1 = temp[[17]], col2 = temp[[8]], table = NULL){
+  if(!is.null(table)){
+    table <- table[1:2, ]
+  } else {
+    table <- table(col1, col2)  
+  }
+  
   test <- chisq.test(table)
   print(table)
   print(test)
 }
 
-regressionIndependenceTest <- function(formula, data){
-  GLM <- glm(formula = formula,data = data, family = poisson("log"))
-  print(GLM)
-  print(anova(GLM))
-  ANV <- anova(GLM)
-  return(ANV)  
+# mostly spending, ratingrelation with gender, academic year, academic section
+regressionIndependenceTest <- function(formula, df){
+  GLM <- glm(formula = formula,data = df, family = poisson("log"))
+  LM <- lm(formula = formula, data = df)
+  #print(GLM)
+  #print(anova(GLM))
+  print(LM["coefficients"])
+  print(anova(LM))
+  #ANVGLM <- anova(GLM)
+  #ANVLM <- anova(LM)
 }
 
 bayesFactor <- function(hypothesesTop, hypothesesBottom, table, successName){
