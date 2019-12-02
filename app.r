@@ -3,9 +3,6 @@ library("shiny")
 library("shinydashboard")
 library("DT")
 library(rsconnect)
-#rsconnect::setAccountInfo(name='emblazion', token='C2FB99087F21181B7E76B0639589C266', secret='b534A3L410t2yVjF/7Kr8JtY0IqTrBWXoNyjV6fA')
-#rsconnect::deployApp('/home/emblaze/RCode/SurveyApp')
-
 
 if (FALSE){
   
