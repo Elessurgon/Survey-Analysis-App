@@ -19,9 +19,6 @@ if(curl::has_internet()) {
   temp <- Canteen_Campus_Chill_Survey
 } 
 
-#for(i in which(temp[[3]] == "Prefer not to say")){
-#  temp[[i, 3]] <- "Male"
-#}
 
 temp[[11]] <- as.numeric(temp[[11]])
 temp[[12]] <- as.numeric(temp[[12]])
@@ -226,11 +223,11 @@ cochranFormula <- function(p = 0.5, step = 0.001){
 
 confidenceInterval <- function(tableCategory, alpha = 0.05){
   #print(tableCategory)
-  df <- data.frame("Categories" = names(tableCategory),binom.confint(x = tableCategory, n = sum(tableCategory), conf.level = 1 - alpha, methods = "all"))
+  df <- data.frame("Categories" = names(tableCategory),binom.confint(x = tableCategory, n = sum(tableCategory), conf.level = 1 - alpha, methods = "asymptotic"))
   return(df)
 }
 
-# gender & spend
+# gender & spend, gender & rating, gender & frequency
 chiSquareTestIndependence <- function(col1 = temp[[17]], col2 = temp[[8]], table = NULL){
   if(!is.null(table)){
     table <- table[1:2, ]
@@ -307,6 +304,8 @@ distribution <- function(pop = temp[[11]], sampleSize = 10, iter = 100, f){
 }
 
 
+
+
 main <- function(){
   look <- splitMixStringList(newtemp)
   look2  <- splitMixStringList(newtemp2)
@@ -353,5 +352,5 @@ main <- function(){
 }
 
 if(interactive()) {
-  #main()
+  main()
 }

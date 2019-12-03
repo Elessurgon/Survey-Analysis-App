@@ -152,10 +152,19 @@ ui <- dashboardPage(
                                        "Frequency Chill" = "8"))),
                          DT::dataTableOutput(outputId = "confidenceInterval")                   
                 ),
-                tabPanel(title = "Non Parametric Tests"
-                  
+                tabPanel(title = "Non Parametric Tests",
+                  verbatimTextOutput(outputId = "NonPara")
                 ),
                 tabPanel(title = "Chi-Square test of Independence",
+                  fluidRow(
+                    box(radioButtons(
+                      inputId = "ChiIndieChoice", label = "Data",
+                      choices = c("Eating Means" = "6", "Frequency Canteen" = "7",
+                                  "Frequency Chill" = "8", "Spending Canteen" = "11",
+                                  "Spending Canteen" = "12", "Rating Canteen" = "13",
+                                  "Rating Chill" = "14", "Enough Campus Chills" = "17",
+                                  "Canteen during Free Hours" = "21")))
+                  ),        
                   verbatimTextOutput(outputId = "chi")
                 ),
                 tabPanel(title = "Linear Regression and ANOVA",
@@ -253,18 +262,40 @@ server <- function(input, output){
           "3" = temp[[3]], "4" = temp[[4]], "5" = temp[[5]],"6" = temp[[6]],
           "7" = temp[[7]],"8" = temp[[8]])
   })
-  
-  
+
+
   output$confidenceInterval <- DT::renderDataTable({
-    confidenceInterval(table(CIchoice()))
+    DT::datatable(data = confidenceInterval(table(CIchoice())), options = list(scrollX = TRUE))
   })
   
+  ChiIndieChoice <- eventReactive(input$ChiIndieChoice, {
+    switch(input$ChiIndieChoice,
+          "6" = temp[[6]], "7" = temp[[7]], "8" = temp[[8]],
+          "11" = temp[[11]], "12" = temp[[12]], "13" = temp[[13]],
+          "14" = temp[[14]], "17" = temp[[17]], "21" = temp[[21]])
+  })
+  
+
   output$chi <- renderPrint({
-    chiSquareTestIndependence(table = table(temp[[3]], temp[[7]]))
+    chiSquareTestIndependence(table = table(temp[[3]], ChiIndieChoice()))
+    
   })
 
   output$anova <- renderPrint({
-    regressionIndependenceTest(temp[[12]] ~ temp[[3]] + temp[[7]] + temp[[8]], temp)
+    regressionIndependenceTest(temp[[11]] ~ temp[[12]] * temp[[13]] , temp)
+    regressionIndependenceTest(temp[[12]] ~ temp[[11]] * temp[[14]] , temp)
+  })
+
+  output$NonPara <- renderPrint({
+    bothNonPara <- function(){
+      print(wilcox.test(temp[[11]], temp[[12]]))
+      print(wilcox.test(temp[[11]], temp[[12]], paired = TRUE, correct = FALSE))
+      print(wilcox.test(temp[[13]], temp[[14]]))
+      print(wilcox.test(temp[[11]], temp[[12]], paired = TRUE, correct = FALSE))
+    }
+    
+    bothNonPara()
+      
   })
 }
 
