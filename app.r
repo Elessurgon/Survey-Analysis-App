@@ -1,74 +1,78 @@
 source("Survey.r")
-library("shiny")
-library("shinydashboard")
-library("DT")
+library(shiny)
+library(shinydashboard)
+library(DT)
 library(rsconnect)
+library(dashboardthemes)
 
-if (FALSE){
-  
-  ui <- fluidPage(
-    tabsetPanel(
-      tabPanel(title = "Responses", 
-               DT::dataTableOutput(outputId = "table")
-      ),
-      tabPanel(title = "Central Limit Theorem",
-               sliderInput(inputId = "iterations", label = "Iterations", value = 100, min = 1, max = 10000),
-               sliderInput(inputId = "size", label = "Sample Size", value = 10, min = 1, max = length(temp[[11]])),
-               actionButton(inputId = "click", label = "Update"),
-               plotOutput(outputId = "plot")
-      ), 
-      tabPanel(title = "Cochran's Formula",
-               DT::dataTableOutput(outputId = "cochran")
-      )
-    )
-  )
-  
-  
-  server <- function(input, output){
-    output$table <- DT::renderDataTable({
-      temp
-    })
-    
-    cochransTable <- reactive({
-      cochranFormula()
-    })
-    
-    
-    output$cochran <- DT::renderDataTable(({
-      cochranFormula()
-      #View(cochranFormula())
-    }))
-    
-    #observeEvent(input$click, {
-    # data <- reactive({ list("sample size" = input$size, "iterations" =  input$iterations) })  
-    #})
-    
-    data <- eventReactive(input$click, {
-      list("sample size" = input$size, "iterations" =  input$iterations)
-    })
-    
-    output$plot <- renderPlot({
-      someExtraPlotting(sampleSize = data()[["sample size"]], iter = data()[["iterations"]])
-    }
-    #cacheKeyExpr = { list(input$size, input$iterations) }
-    )
-  }
-  
-}
-###################################################################################################
-#where the REAL CODE starts
 
 df <- temp[, 3:22]
+myLogo <- shinyDashboardLogoDIY(
+  boldText = "Inference Board"
+  ,mainText = ""
+  ,textSize = 16
+  ,badgeText = "1.0"
+  ,badgeTextColor = "Black"
+  ,badgeTextSize = 3
+  ,badgeBackColor = "#40E0D0"
+  ,badgeBorderRadius = 3
+)
+
+  # Ui functions ------------------------------------------------------------
+uiChangeThemeDropdown <- function(dropDownLabel = "Change Theme", defaultTheme = "grey_dark"){
+  changeThemeChoices <- c(
+    "Blue gradient" = "blue_gradient",
+    "Plane website" = "boe_website",
+    "Grey light" = "grey_light",
+    "Grey dark" = "grey_dark",
+    "OneNote" = "onenote",
+    "Poor man's Flatly" = "poor_mans_flatly",
+    "Purple gradient" = "purple_gradient"
+  )
+  ns <- NS("moduleChangeTheme")
+  dropdown <- tagList(
+    selectizeInput(
+      inputId = ns("dbxChangeTheme"),
+      label = dropDownLabel,
+      choices = changeThemeChoices,
+      selected = defaultTheme
+    )
+  )
+  return(dropdown)
+}
+
+uiChangeThemeOutput <- function(){
+  ns <- NS("moduleChangeTheme")
+  themeOutput <- tagList(
+    uiOutput(ns("uiChangeTheme"))
+  )
+  return(themeOutput)
+}
+
+
+  # Server functions --------------------------------------------------------
+serverChangeTheme <- function(input, output, session){
+  observeEvent(
+    input$dbxChangeTheme, 
+    {
+      output$uiChangeTheme <- renderUI({
+        shinyDashboardThemes(theme = input$dbxChangeTheme)
+      })
+    }
+  )
+}
+
 
 ui <- dashboardPage(
-  dashboardHeader(title = "Inference Dashboard"),
+  dashboardHeader(title = "Inference Board"),
   dashboardSidebar(
     sidebarMenu(
-      menuItem("DashBoard", tabName = "dashboard", icon = icon("dashboard")),
+      #menuItem("DashBoard", tabName = "dashboard", icon = icon("dashboard")),
+      menuItem("Themes", tabName = "tabThemes", icon = icon("chart-line")),
       menuItem("Spending Vs Rating", tabName = "SpendRate", icon = icon("chart-line")),
       menuItem("Survey Data", tabName = "data", icon = icon("table")),
-      menuItem("Cochran's Formula Tabulated", tabName = "cochran", icon = icon("table")),
-      menuItem("Central Limit Theroem", tabName = "CLT", icon = icon("chart-bar")),
+      menuItem("Cochran's Formula(Table)", tabName = "cochran", icon = icon("table")),
+      menuItem("Central Limit Theorem", tabName = "CLT", icon = icon("chart-bar")),
       menuItem("Bayesian Inference", tabName = "bayes", icon = icon("chart-line")),
       menuItem("Distributions", tabName = "distri", icon = icon("chart-bar")),
       menuItem("Tests", tabName = "tests", icon = icon("table"))
@@ -76,14 +80,16 @@ ui <- dashboardPage(
   ),
   
   dashboardBody(
+    uiChangeThemeOutput(),
     tabItems(
-      tabItem(tabName = "dashboard",
-              fluidRow(
-                box(plotOutput("plot1", height = 250)),
-                box(title = "Controls",
-                    sliderInput(inputId = "slider", label = "Number of observations", min = 1, max = 100, value = 50)
-                )
-              )
+      tabItem(
+        tabName = "tabThemes",
+          fluidRow(
+            column(
+              width = 12,
+              uiChangeThemeDropdown()
+            )
+          )
       ),
       tabItem(tabName = "SpendRate",
               box(plotOutput("spendVRate"), height = 420, width = 500, status = "warning")
@@ -94,10 +100,13 @@ ui <- dashboardPage(
                 box(sliderInput(inputId = "size", label = "Sample Size", min = 1, max = length(temp[[1]]), value = 10))
               ),
               fluidRow(
-                actionButton(inputId = "update", label = "Generate New Data"),
+
+                actionButton(inputId = "update", label = "Generate New Data", style="color: #fff; background-color: #337ab7; border-color: #2e6da4"),
                 column(box(radioButtons(
                   inputId = "choice", label = "Canteen & Chill Spending/Rating Data",
-                  choices = c("Spending Data" = "spend", "Rating Data" = "rate")          
+                  choices = c("Spending Data" = "spend", "Rating Data" = "rate", 
+                  "Spending*Rating Ratio (Canteen and Chill)" = "Mul",
+                  "Spending/Rating Ratio (Canteen and Chill)" = "Div")          
                 )), width = 5) 
               ),
               box(plotOutput("CLTPlot"), height = 400, width = 400, status = "warning")
@@ -131,7 +140,7 @@ ui <- dashboardPage(
                   box(radioButtons(
                     inputId = "dist", label = "Random Variates",
                     choices = c("Variance" = "var", "Max" = "max", "Min" = "min",
-                                "Range" = "range")
+                                "Range" = "range", "Median" = "med")
                   ), width = 12)
                 , width = 3),
                 column(
@@ -146,11 +155,11 @@ ui <- dashboardPage(
               tabsetPanel(
                 tabPanel(title = "Confidence Interval",
                         box(radioButtons(
-                           inputId = "CIChoice", label = "Data",
-                           choices = c("Gender" = "3", "Academic Section" = "4", "Academic Year" = "5",
-                                       "Eating Means" = "6", "Frequency Canteen" = "7",
-                                       "Frequency Chill" = "8"))),
-                         DT::dataTableOutput(outputId = "confidenceInterval")                   
+                          inputId = "CIChoice", label = "Data",
+                          choices = c("Names Given" = "2","Gender" = "3", "Academic Section" = "4", "Academic Year" = "5",
+                                      "Eating Means" = "6", "Frequency Canteen" = "7",
+                                      "Frequency Chill" = "8"))),
+                        DT::dataTableOutput(outputId = "confidenceInterval")                   
                 ),
                 tabPanel(title = "Non Parametric Tests",
                   verbatimTextOutput(outputId = "NonPara")
@@ -176,7 +185,10 @@ ui <- dashboardPage(
   )
 )
 
-server <- function(input, output){
+server <- function(input, output, session){
+
+  callModule(module = serverChangeTheme, id = "moduleChangeTheme")
+
   histdata <- rnorm(100)
   output$plot1 <- renderPlot({
     data <- histdata[seq_len(input$slider)]
@@ -190,7 +202,9 @@ server <- function(input, output){
   output$CLTPlot <- renderPlot({
     CLTCols <- switch(input$choice,
                       spend = list("Canteen" = temp[[11]], "Chill" = temp[[12]]),
-                      rate = list("Canteen" = temp[[13]], "Chill" = temp[[14]])
+                      rate = list("Canteen" = temp[[13]], "Chill" = temp[[14]]),
+                      Mul = list("Canteen" = round(temp[[11]]*temp[[13]], digits = 2), "Chill" = round(temp[[12]]*temp[[14]], digits = 2)),
+                      Div = list("Canteen" = round(temp[[11]]/temp[[13]], digits = 2), "Chill" = round(temp[[12]]/temp[[14]], digits = 2))
     )
     someExtraPlotting(col1 = CLTCols[["Canteen"]], col2 = CLTCols[["Chill"]], sampleSize = CLTData()[["sample size"]], iter = CLTData()[["iter"]])
   })
@@ -215,7 +229,7 @@ server <- function(input, output){
       
     tagList(
       radioButtons(inputId = "colChoice", label = "Levels",
-                   choices = c(names(table(choice2()))), selected = character(0)
+                  choices = c(names(table(choice2()))), selected = character(0)
       )
     )
     
@@ -249,7 +263,8 @@ server <- function(input, output){
       "var" = var,
       "max" = max,
       "min" = min,
-      "range" = R
+      "range" = R,
+      "med" = median
     )
   })
 
@@ -259,8 +274,8 @@ server <- function(input, output){
   
   CIchoice <- eventReactive(input$CIChoice, {
     switch(input$CIChoice,
-          "3" = temp[[3]], "4" = temp[[4]], "5" = temp[[5]],"6" = temp[[6]],
-          "7" = temp[[7]],"8" = temp[[8]])
+          "2" = isGiven(), "3" = temp[[3]], "4" = temp[[4]], "5" = temp[[5]],
+          "6" = temp[[6]], "7" = temp[[7]],"8" = temp[[8]])
   })
 
 
@@ -288,10 +303,10 @@ server <- function(input, output){
 
   output$NonPara <- renderPrint({
     bothNonPara <- function(){
-      print(wilcox.test(temp[[11]], temp[[12]]))
-      print(wilcox.test(temp[[11]], temp[[12]], paired = TRUE, correct = FALSE))
-      print(wilcox.test(temp[[13]], temp[[14]]))
-      print(wilcox.test(temp[[11]], temp[[12]], paired = TRUE, correct = FALSE))
+      print(wilcox.test(temp[["Average amount of money spent in the Canteen per Week"]], temp[["Average amount of money spent in the Campus Chill per Week"]]))
+      print(wilcox.test(temp[["Average amount of money spent in the Canteen per Week"]], temp[["Average amount of money spent in the Campus Chill per Week"]], paired = TRUE, correct = FALSE))
+      print(wilcox.test(temp[["Rate the Canteen"]], temp[["Rate the Campus Chill (Xavier/IT Block)"]]))
+      print(wilcox.test(temp[["Rate the Canteen"]], temp[["Rate the Campus Chill (Xavier/IT Block)"]], paired = TRUE, correct = FALSE))
     }
     
     bothNonPara()

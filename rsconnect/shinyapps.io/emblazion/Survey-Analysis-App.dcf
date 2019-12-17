@@ -1,0 +1,13 @@
+name: Survey-Analysis-App
+title: Survey-Analysis-App
+username:
+account: emblazion
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 1604466
+bundleId: 2672964
+url: https://emblazion.shinyapps.io/Survey-Analysis-App/
+when: 1576527071.61423
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .~lock.Canteen & Campus Chill Survey (Responses) - Form responses 1.csv#|Canteen & Campus Chill Survey responses.csv

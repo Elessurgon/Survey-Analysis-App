@@ -3,21 +3,22 @@ library(tidyverse)
 library(stringr)
 library(readr)
 library(gridExtra)
-library(binom)
 library(gmodels)
+library(binom)
 library(MASS)
 library(goftest)
 library(curl)
 library(gsheet)
+#library(reticulate)
 
 if(curl::has_internet()) {
   print("Internet: TRUE")
   temp <-  gsheet2tbl('https://docs.google.com/spreadsheets/d/1CLEozMTkZEtuf8743O1_R8gzvqAXUdb29YBbtxPc9Lc/edit#gid=687952067')  
-} else {
-  print("Internet: FALSE")
-  Canteen_Campus_Chill_Survey <- read_csv("Canteen & Campus Chill Survey.csv")
-  temp <- Canteen_Campus_Chill_Survey
-} 
+}# else {
+#  print("Internet: FALSE")
+#  Canteen_Campus_Chill_Survey <- read_csv("Canteen & Campus Chill Survey responses.csv")
+#  temp <- Canteen_Campus_Chill_Survey
+#} 
 
 
 temp[[11]] <- as.numeric(temp[[11]])
@@ -69,11 +70,24 @@ transformTemp <- function(tempVar){
 
 RecTemp <- transformTemp(temp)
 
+remove <- function(){
+  rows <- NULL
+  for(i in seq(280, length(temp[[1]]), 1)){
+    #print(data[[2]][[i]])
+    if( is.na(temp[[2]][[i]]) && is.na(temp[[18]][[i]]) && is.na(temp[[18]][[i]])){
+      rows <- c(rows, i)
+    }
+  }
+  return(rows)
+}
+
+temp <- temp[-remove(), ]
+
 R <- function(sample){
   return(max(sample) - min(sample))
 }
 
-fList <- c(var, max, min, R)
+fList <- c(var, max, min, R, median)
 
 countRegex <- function(word){
   lst <- str_detect(foodChill, regex(word, ignore_case = TRUE))
@@ -115,22 +129,22 @@ splitMixStringList <- function(list){
 }
 
 changeRegexV2 <- function(expr,newExpr, list){
-   expr <- regex(expr, ignore_case = TRUE)
-   newList <- NULL
-   for(i in list){
-     if(str_detect(i, expr)){
-       newList <- c(newList,newExpr)
-     } else {
-       newList <- c(newList, i)
-     }
-   }
-   return(newList)
- }
+  expr <- regex(expr, ignore_case = TRUE)
+  newList <- NULL
+  for(i in list){
+    if(str_detect(i, expr)){
+      newList <- c(newList,newExpr)
+    } else {
+      newList <- c(newList, i)
+    }
+  }
+  return(newList)
+}
 
- removeExtra <- function(word, list){
-   return(changeRegexV2(paste("^",word,"*",sep= ""), word, list))   
- }
- 
+removeExtra <- function(word, list){
+  return(changeRegexV2(paste("^",word,"*",sep= ""), word, list))   
+}
+
 correctAndRemove <- function(corList, remList, lookList){
   tempList <- lookList
   for(i in names(corList)){
@@ -163,12 +177,14 @@ someExtraPlotting <- function(col1 = temp[[11]], col2 = temp[[12]], sampleSize =
   #aes(y = (..density..)*magicScale),
   canteenSpendingPlot <- ggplot() +
     aes(canteenSpending) + 
-    geom_histogram(color = "black", fill = "White") #+
+    geom_histogram(color = "black", fill = "White") +
+    xlab("Canteen")
     #stat_function(fun = dpois, args = list(lambda = mean(canteenSpending)), color = "red")
 
   chillSpendingPlot <- ggplot() + 
     aes(chillSpending) + 
-    geom_histogram(color = "black", fill = "White") #+
+    geom_histogram(color = "black", fill = "White") +
+    xlab("Chill")
     #stat_function(fun = dpois, args = list(lambda = mean(chillSpending)), color = "red")
     
   samplingMeansCanteenSpend <- CLT(canteenSpending, sampleSize = sampleSize, iter = iter)
@@ -223,7 +239,9 @@ cochranFormula <- function(p = 0.5, step = 0.001){
 
 confidenceInterval <- function(tableCategory, alpha = 0.05){
   #print(tableCategory)
+  column <- 2
   df <- data.frame("Categories" = names(tableCategory),binom.confint(x = tableCategory, n = sum(tableCategory), conf.level = 1 - alpha, methods = "asymptotic"))
+  df <- data.frame(df[1:4],apply(df[5:7], column, round,  digits = 4))
   return(df)
 }
 
@@ -273,7 +291,9 @@ beta_bfsComparison <- function(table, successName, hypotheses){
   
   ggplot(data = df) + 
     geom_line(mapping = aes(x = df[["hypotheses"]], y = df[["SBFS"]])) +
-    geom_point(mapping = aes(x = df[["hypotheses"]], y = df[["NBFS"]]), color = "red", size = 1)
+    geom_point(mapping = aes(x = df[["hypotheses"]], y = df[["NBFS"]]), color = "red", size = 1) +
+    xlab("Hypotheses") +
+    ylab("Scaled Bayesian Factors")
 }
 
 SpendingVsRating <-  function(){
@@ -303,6 +323,11 @@ distribution <- function(pop = temp[[11]], sampleSize = 10, iter = 100, f){
   hist(variates, breaks = 30)
 }
 
+isGiven <- function(){
+    lst <- (!is.na(temp[[2]]))
+    namesGiven <- ifelse(lst, "Given", "Not Given")
+    return(namesGiven)
+}
 
 
 
@@ -333,7 +358,7 @@ main <- function(){
   #bayesFactor(hypothesesTop = hypotheses, hypothesesBottom = 0.5, table(temp[[7]]), "Occasionally")
   #bayesFactor(hypothesesTop = hypotheses, hypothesesBottom = 0.5, table(temp[[8]]), "Occasionally")
   
-  beta_bfsComparison(table = table(temp[[3]]), successName = "Male", hypotheses = hypotheses)
+  #beta_bfsComparison(table = table(temp[[3]]), successName = "Male", hypotheses = hypotheses)
   #graph2 <-beta_bfsComparison(table = table(temp[[7]]), successName = "Sometimes", hypotheses = hypotheses)
   
   #binConfidenceIntervals(temp[[3]])
@@ -352,5 +377,6 @@ main <- function(){
 }
 
 if(interactive()) {
-  main()
+  #main()
 }
+
